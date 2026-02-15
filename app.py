@@ -1,11 +1,12 @@
 """Main FastAPI application entry point."""
 
+import asyncio
 import json
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-from config import disaster_queue
+from config import MODELS
 from websocket_manager import ConnectionManager
 from game import run_simulation
 
@@ -34,8 +35,7 @@ async def websocket_endpoint(websocket: WebSocket):
     WebSocket endpoint for real-time game communication.
 
     Handles:
-    - start: Begin the simulation
-    - disaster: Add a disaster to the queue
+    - start: Begin all 3 simulations in parallel
     """
     await manager.connect(websocket)
     try:
@@ -44,9 +44,10 @@ async def websocket_endpoint(websocket: WebSocket):
             msg = json.loads(data)
 
             if msg.get("command") == "start":
-                await run_simulation(manager)
-            elif msg.get("command") == "disaster":
-                await disaster_queue.put(msg.get("text"))
+                # Start all 3 simulations in parallel
+                asyncio.create_task(run_simulation("sonnet", MODELS["sonnet"], manager))
+                asyncio.create_task(run_simulation("opus", MODELS["opus"], manager))
+                asyncio.create_task(run_simulation("haiku", MODELS["haiku"], manager))
 
     except WebSocketDisconnect:
         manager.disconnect(websocket)

@@ -3,111 +3,1539 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>AI Tribe: Pixel Edition</title>
-
-    <!-- Google Font -->
+    <title>AI Tribe: Multi-Model Comparison</title>
     <link
       href="https://fonts.googleapis.com/css2?family=VT323&display=swap"
       rel="stylesheet"
     />
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: #1a1a1a;
+        color: #eee;
+        font-family: "VT323", monospace;
+        overflow: hidden;
+      }
 
-    <!-- Styles -->
-    <link rel="stylesheet" href="/static/css/style.css" />
+      #game-layout {
+        display: flex;
+        width: 100vw;
+        height: 100vh;
+      }
+
+      /* LEFT PANEL: Canvas on top, charts below */
+      #left-panel {
+        display: flex;
+        flex-direction: column;
+        flex-grow: 1;
+        min-width: 0;
+      }
+
+      /* TAB CONTAINER for model selection */
+      #model-tabs {
+        display: flex;
+        background: #000;
+        border-bottom: 3px solid #333;
+        flex-shrink: 0;
+      }
+
+      .model-tab {
+        flex: 1;
+        padding: 10px 15px;
+        background: #1a1a1a;
+        border: none;
+        border-right: 2px solid #333;
+        color: #888;
+        font-family: "VT323", monospace;
+        font-size: 20px;
+        cursor: pointer;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        transition: all 0.2s;
+      }
+
+      .model-tab:last-child {
+        border-right: none;
+      }
+
+      .model-tab:hover {
+        background: #2a2a2a;
+        color: #aaa;
+      }
+
+      .model-tab.active {
+        background: #000;
+        color: #4fc3f7;
+        border-bottom: 3px solid #4fc3f7;
+        margin-bottom: -3px;
+      }
+
+      .model-tab.sonnet.active {
+        color: #4fc3f7;
+        border-bottom-color: #4fc3f7;
+      }
+      .model-tab.opus.active {
+        color: #ba68c8;
+        border-bottom-color: #ba68c8;
+      }
+      .model-tab.haiku.active {
+        color: #81c784;
+        border-bottom-color: #81c784;
+      }
+
+      #game-container {
+        position: relative;
+        flex: 0 0 45%;
+        background: #000;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        image-rendering: pixelated;
+        overflow: hidden;
+      }
+
+      canvas.island-canvas {
+        box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+      }
+
+      .island-view {
+        display: none;
+        width: 100%;
+        height: 100%;
+        position: relative;
+      }
+
+      .island-view.active {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+
+      /* CHARTS PANEL */
+      #charts-panel {
+        flex: 0 0 55%;
+        background: #111;
+        border-top: 3px solid #333;
+        display: flex;
+        flex-direction: column;
+        padding: 10px 14px 8px;
+        gap: 8px;
+        overflow: hidden;
+        align-items: center;
+      }
+
+      #charts-content {
+        width: 100%;
+        max-width: 800px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        flex: 1;
+        min-height: 0;
+      }
+
+      #charts-title {
+        font-size: 18px;
+        color: #aaa;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        flex-shrink: 0;
+      }
+
+      /* Three charts now — equal space */
+      .chart-wrapper {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+      }
+
+      .chart-label {
+        font-size: 15px;
+        margin-bottom: 2px;
+        flex-shrink: 0;
+      }
+      .chart-label.wild {
+        color: #4fc3f7;
+      }
+      .chart-label.stash {
+        color: #ffb74d;
+      }
+      .chart-label.population {
+        color: #a5d6a7;
+      }
+
+      .chart-canvas-wrap {
+        flex: 1;
+        min-height: 0;
+        background: #1c1c1c;
+        border: 2px solid #333;
+        position: relative;
+      }
+
+      .chart-canvas-wrap canvas {
+        display: block;
+        width: 100%;
+        height: 100%;
+        box-shadow: none;
+      }
+
+      /* SIDEBAR STYLES */
+      #sidebar {
+        width: 640px;
+        background: #2d2d2d;
+        border-left: 4px solid #111;
+        display: flex;
+        flex-direction: column;
+        padding: 15px;
+        flex-shrink: 0;
+      }
+
+      .pixel-card {
+        background: #3d3d3d;
+        border: 2px solid #111;
+        padding: 10px;
+        margin-bottom: 10px;
+        box-shadow: 4px 4px 0px #111;
+      }
+
+      .stat-label {
+        font-size: 18px;
+        color: #aaa;
+        text-transform: uppercase;
+      }
+      .stat-value {
+        font-size: 32px;
+        color: #fff;
+        text-shadow: 2px 2px #000;
+      }
+      .highlight {
+        color: #4fc3f7;
+      }
+      .warning {
+        color: #ffb74d;
+      }
+
+      button {
+        width: 100%;
+        padding: 15px;
+        background: #4caf50;
+        color: white;
+        border: 2px solid #1b5e20;
+        font-family: "VT323", monospace;
+        font-size: 24px;
+        cursor: pointer;
+        box-shadow: 4px 4px 0px #111;
+        transition: transform 0.1s;
+      }
+      button:active {
+        transform: translate(2px, 2px);
+        box-shadow: 2px 2px 0px #111;
+      }
+      button:disabled {
+        background: #555;
+        border-color: #333;
+        color: #888;
+        cursor: not-allowed;
+      }
+
+      /* DIALOGUE FEED */
+      #dialogue-header {
+        font-size: 20px;
+        color: #aaa;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        margin-top: 10px;
+        margin-bottom: 8px;
+        flex-shrink: 0;
+        padding-bottom: 6px;
+        border-bottom: 2px solid #444;
+      }
+
+      .dialogue-wrapper {
+        flex-grow: 1;
+        background: #111;
+        border: 2px solid #555;
+        padding: 12px 10px;
+        overflow-y: auto;
+        font-size: 19px;
+        display: none;
+        flex-direction: column;
+        gap: 8px;
+        scroll-behavior: smooth;
+        min-height: 0;
+      }
+
+      .dialogue-wrapper.active {
+        display: flex;
+      }
+
+      .log-phase {
+        color: #ffeb3b;
+        font-size: 18px;
+        text-align: center;
+        padding: 4px 0;
+        border-top: 1px dashed #444;
+        border-bottom: 1px dashed #444;
+        letter-spacing: 1px;
+        flex-shrink: 0;
+      }
+
+      .dialogue-msg {
+        display: flex;
+        align-items: flex-start;
+        gap: 9px;
+        flex-shrink: 0;
+        animation: fadeSlideIn 0.25s ease;
+      }
+
+      @keyframes fadeSlideIn {
+        from {
+          opacity: 0;
+          transform: translateY(6px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      /* Born flash animation */
+      @keyframes bornFlash {
+        0% {
+          box-shadow: 0 0 0px 0px #a5d6a7;
+        }
+        50% {
+          box-shadow: 0 0 12px 4px #a5d6a7;
+        }
+        100% {
+          box-shadow: 4px 4px 0px #111;
+        }
+      }
+
+      .dialogue-avatar {
+        width: 32px;
+        height: 32px;
+        border-radius: 2px;
+        border: 2px solid #000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 16px;
+        font-weight: bold;
+        flex-shrink: 0;
+        color: #000;
+        box-shadow: 2px 2px 0 #000;
+        line-height: 1;
+      }
+
+      .dialogue-avatar.dead {
+        background: #555 !important;
+        color: #999;
+      }
+
+      .dialogue-bubble {
+        flex: 1;
+        min-width: 0;
+      }
+
+      .dialogue-name {
+        font-size: 15px;
+        opacity: 0.7;
+        margin-bottom: 2px;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+      }
+
+      .leader-crown {
+        font-size: 13px;
+      }
+
+      .dialogue-text {
+        background: #2a2a2a;
+        border: 1px solid #444;
+        border-left-width: 3px;
+        padding: 6px 10px;
+        font-size: 19px;
+        color: #eee;
+        word-break: break-word;
+        white-space: normal;
+        overflow-wrap: break-word;
+        box-shadow: 2px 2px 0 #111;
+        line-height: 1.3;
+      }
+
+      .dialogue-text.status {
+        border-color: #4fc3f7;
+        color: #b3e5fc;
+        background: #0d2533;
+      }
+
+      .dialogue-text.death {
+        border-color: #ef5350;
+        background: rgba(239, 83, 80, 0.12);
+        color: #ef9a9a;
+      }
+
+      .dialogue-text.born {
+        border-color: #a5d6a7;
+        background: rgba(165, 214, 167, 0.1);
+        color: #c8e6c9;
+      }
+
+      .log-system {
+        font-size: 16px;
+        color: #555;
+        padding: 2px 8px;
+        font-style: italic;
+        flex-shrink: 0;
+      }
+
+      /* BUBBLES */
+      .bubble {
+        position: absolute;
+        background: #fff;
+        color: #000;
+        padding: 4px 8px;
+        border: 2px solid #000;
+        font-size: 18px;
+        pointer-events: none;
+        white-space: nowrap;
+        box-shadow: 3px 3px 0px rgba(0, 0, 0, 0.5);
+        opacity: 0;
+        transition: opacity 0.2s;
+        z-index: 100;
+        transform: translate(-50%, -100%);
+      }
+
+      .phase-banner {
+        position: absolute;
+        top: 12px;
+        background: rgba(0, 0, 0, 0.85);
+        color: #ffeb3b;
+        padding: 6px 16px;
+        font-size: 26px;
+        border: 2px solid #ffeb3b;
+        box-shadow: 4px 4px 0px #000;
+        z-index: 10;
+        pointer-events: none;
+      }
+
+      /* Born arrival banner */
+      .born-banner {
+        position: absolute;
+        bottom: 16px;
+        background: rgba(0, 0, 0, 0.9);
+        color: #a5d6a7;
+        padding: 5px 14px;
+        font-size: 20px;
+        border: 2px solid #a5d6a7;
+        box-shadow: 4px 4px 0px #000;
+        z-index: 10;
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 0.3s;
+      }
+
+      /* Model-specific colors for stat cards */
+      .model-indicator {
+        display: inline-block;
+        width: 12px;
+        height: 12px;
+        border-radius: 2px;
+        margin-right: 5px;
+      }
+      .model-indicator.sonnet {
+        background: #4fc3f7;
+      }
+      .model-indicator.opus {
+        background: #ba68c8;
+      }
+      .model-indicator.haiku {
+        background: #81c784;
+      }
+
+      /* Leaderboard styles */
+      #leaderboard {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      .leaderboard-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 10px;
+        background: #2a2a2a;
+        border: 2px solid #444;
+        border-radius: 2px;
+        transition: all 0.3s ease;
+      }
+
+      .leaderboard-row[data-rank="1"] {
+        border-color: #ffd700;
+        background: rgba(255, 215, 0, 0.1);
+      }
+
+      .leaderboard-row[data-rank="2"] {
+        border-color: #c0c0c0;
+        background: rgba(192, 192, 192, 0.08);
+      }
+
+      .leaderboard-row[data-rank="3"] {
+        border-color: #cd7f32;
+        background: rgba(205, 127, 50, 0.08);
+      }
+
+      .rank-badge {
+        font-size: 18px;
+        font-weight: bold;
+        min-width: 30px;
+        text-align: center;
+      }
+
+      .leaderboard-row[data-rank="1"] .rank-badge {
+        color: #ffd700;
+        text-shadow: 0 0 8px rgba(255, 215, 0, 0.5);
+      }
+
+      .leaderboard-row[data-rank="2"] .rank-badge {
+        color: #c0c0c0;
+        text-shadow: 0 0 8px rgba(192, 192, 192, 0.4);
+      }
+
+      .leaderboard-row[data-rank="3"] .rank-badge {
+        color: #cd7f32;
+        text-shadow: 0 0 8px rgba(205, 127, 50, 0.4);
+      }
+
+      .model-name {
+        flex: 1;
+        font-size: 18px;
+        font-weight: bold;
+      }
+
+      .pop-count {
+        font-size: 24px;
+        font-weight: bold;
+        min-width: 40px;
+        text-align: right;
+      }
+    </style>
   </head>
-
   <body>
-    <!-- Main Layout -->
     <div id="game-layout">
-      <!-- Left Panel: Game Canvas + Charts -->
+      <!-- LEFT: tabs + island + charts stacked -->
       <div id="left-panel">
-        <!-- Game Canvas Container -->
-        <div id="game-container">
-          <canvas id="gameCanvas"></canvas>
-          <div id="phase-banner">Waiting to Start...</div>
-          <div id="born-banner"></div>
+        <!-- MODEL TABS -->
+        <div id="model-tabs">
+          <button
+            class="model-tab sonnet active"
+            onclick="switchModel('sonnet')"
+          >
+            <span class="model-indicator sonnet"></span>Sonnet 4.5
+          </button>
+          <button class="model-tab opus" onclick="switchModel('opus')">
+            <span class="model-indicator opus"></span>Opus 4.5
+          </button>
+          <button class="model-tab haiku" onclick="switchModel('haiku')">
+            <span class="model-indicator haiku"></span>Haiku 4.5
+          </button>
         </div>
 
-        <!-- Charts Panel -->
+        <div id="game-container">
+          <!-- Sonnet Island -->
+          <div class="island-view active" data-model="sonnet">
+            <canvas class="island-canvas" id="canvas-sonnet"></canvas>
+            <div class="phase-banner" id="phase-banner-sonnet">
+              Waiting to Start...
+            </div>
+            <div class="born-banner" id="born-banner-sonnet"></div>
+          </div>
+
+          <!-- Opus Island -->
+          <div class="island-view" data-model="opus">
+            <canvas class="island-canvas" id="canvas-opus"></canvas>
+            <div class="phase-banner" id="phase-banner-opus">
+              Waiting to Start...
+            </div>
+            <div class="born-banner" id="born-banner-opus"></div>
+          </div>
+
+          <!-- Haiku Island -->
+          <div class="island-view" data-model="haiku">
+            <canvas class="island-canvas" id="canvas-haiku"></canvas>
+            <div class="phase-banner" id="phase-banner-haiku">
+              Waiting to Start...
+            </div>
+            <div class="born-banner" id="born-banner-haiku"></div>
+          </div>
+        </div>
+
         <div id="charts-panel">
-          <div id="charts-title">📈 Population Tracker</div>
+          <div id="charts-content">
+            <div id="charts-title">📈 Population Tracker</div>
 
-          <!-- Wild Fish Chart -->
-          <div class="chart-wrapper">
-            <div class="chart-label wild" id="wild-label">🐟 Wild Fish: 0</div>
-            <div class="chart-canvas-wrap">
-              <canvas id="wildChart"></canvas>
+            <div class="chart-wrapper">
+              <div class="chart-label wild" id="wild-label">🐟 Wild Fish</div>
+              <div class="chart-canvas-wrap">
+                <canvas id="wildChart"></canvas>
+              </div>
             </div>
-          </div>
 
-          <!-- Village Stash Chart -->
-          <div class="chart-wrapper">
-            <div class="chart-label stash" id="stash-label">
-              🪣 Village Stash: 0
-            </div>
-            <div class="chart-canvas-wrap">
-              <canvas id="stashChart"></canvas>
-            </div>
-          </div>
-
-          <!-- Population Chart -->
-          <div class="chart-wrapper">
-            <div class="chart-label population" id="pop-label">
-              👥 Population: 0
-            </div>
-            <div class="chart-canvas-wrap">
-              <canvas id="popChart"></canvas>
+            <div class="chart-wrapper">
+              <div class="chart-label population" id="pop-label">
+                👥 Population
+              </div>
+              <div class="chart-canvas-wrap">
+                <canvas id="popChart"></canvas>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Right Sidebar: Controls + Dialogue -->
+      <!-- RIGHT: sidebar with model-specific stats and dialogue -->
       <div id="sidebar">
-        <!-- Start Button -->
         <div id="controls">
-          <button id="start-btn" onclick="startSim()">> START GAME</button>
+          <button id="start-btn" onclick="startSim()">
+            > START ALL SIMULATIONS
+          </button>
         </div>
 
-        <!-- Disaster Input -->
-        <div class="pixel-card" style="margin-top: 15px">
-          <div class="stat-label" style="color: #ef5350">
-            ⚡ Divine Intervention
-          </div>
-          <input
-            id="disaster-input"
-            type="text"
-            placeholder="Type disaster & press Enter..."
-          />
-        </div>
-
-        <!-- Game Stats -->
         <div class="pixel-card">
           <div class="stat-label">Day</div>
-          <div class="stat-value" id="stat-day">0</div>
+          <div style="display: flex; gap: 10px">
+            <div style="flex: 1">
+              <div style="font-size: 14px; color: #4fc3f7; margin-bottom: 3px">
+                <span class="model-indicator sonnet"></span>Sonnet
+              </div>
+              <div
+                class="stat-value"
+                id="stat-day-sonnet"
+                style="font-size: 24px; color: #4fc3f7"
+              >
+                0
+              </div>
+            </div>
+            <div style="flex: 1">
+              <div style="font-size: 14px; color: #ba68c8; margin-bottom: 3px">
+                <span class="model-indicator opus"></span>Opus
+              </div>
+              <div
+                class="stat-value"
+                id="stat-day-opus"
+                style="font-size: 24px; color: #ba68c8"
+              >
+                0
+              </div>
+            </div>
+            <div style="flex: 1">
+              <div style="font-size: 14px; color: #81c784; margin-bottom: 3px">
+                <span class="model-indicator haiku"></span>Haiku
+              </div>
+              <div
+                class="stat-value"
+                id="stat-day-haiku"
+                style="font-size: 24px; color: #81c784"
+              >
+                0
+              </div>
+            </div>
+          </div>
         </div>
 
-        <div style="display: flex; gap: 10px">
-          <div class="pixel-card" style="flex: 1">
-            <div class="stat-label">Fish</div>
-            <div class="stat-value highlight" id="stat-wild">0</div>
-          </div>
-          <div class="pixel-card" style="flex: 1">
-            <div class="stat-label">Stash</div>
-            <div class="stat-value warning" id="stat-stash">0</div>
+        <div class="pixel-card">
+          <div class="stat-label">🏆 Population Leaderboard</div>
+          <div id="leaderboard" style="margin-top: 10px">
+            <div class="leaderboard-row" data-model="sonnet">
+              <span class="rank-badge">#1</span>
+              <span class="model-indicator sonnet"></span>
+              <span class="model-name">Sonnet</span>
+              <span class="pop-count" id="lb-pop-sonnet">0</span>
+            </div>
+            <div class="leaderboard-row" data-model="opus">
+              <span class="rank-badge">#2</span>
+              <span class="model-indicator opus"></span>
+              <span class="model-name">Opus</span>
+              <span class="pop-count" id="lb-pop-opus">0</span>
+            </div>
+            <div class="leaderboard-row" data-model="haiku">
+              <span class="rank-badge">#3</span>
+              <span class="model-indicator haiku"></span>
+              <span class="model-name">Haiku</span>
+              <span class="pop-count" id="lb-pop-haiku">0</span>
+            </div>
           </div>
         </div>
 
-        <!-- Dialogue Feed -->
         <div id="dialogue-header">💬 Agent Dialogue</div>
-        <div id="log-wrapper"></div>
+
+        <!-- Sonnet Dialogue -->
+        <div
+          class="dialogue-wrapper active"
+          id="log-wrapper-sonnet"
+          data-model="sonnet"
+        ></div>
+
+        <!-- Opus Dialogue -->
+        <div
+          class="dialogue-wrapper"
+          id="log-wrapper-opus"
+          data-model="opus"
+        ></div>
+
+        <!-- Haiku Dialogue -->
+        <div
+          class="dialogue-wrapper"
+          id="log-wrapper-haiku"
+          data-model="haiku"
+        ></div>
       </div>
     </div>
 
-    <!-- JavaScript Modules -->
-    <script src="/static/js/sprite-loader.js"></script>
-    <script src="/static/js/game.js"></script>
-    <script src="/static/js/charts.js"></script>
-    <script src="/static/js/ui.js"></script>
-    <script src="/static/js/websocket.js"></script>
+    <script>
+      // =============================================
+      // GLOBAL STATE
+      // =============================================
+      let currentModel = "sonnet";
+      const MODEL_COLORS = {
+        sonnet: "#4fc3f7",
+        opus: "#ba68c8",
+        haiku: "#81c784",
+      };
+
+      // =============================================
+      // MODEL SWITCHING
+      // =============================================
+      function switchModel(modelName) {
+        currentModel = modelName;
+
+        // Update tabs
+        document.querySelectorAll(".model-tab").forEach((tab) => {
+          tab.classList.remove("active");
+        });
+        document
+          .querySelector(`.model-tab.${modelName}`)
+          .classList.add("active");
+
+        // Update island views
+        document.querySelectorAll(".island-view").forEach((view) => {
+          view.classList.remove("active");
+        });
+        document
+          .querySelector(`.island-view[data-model="${modelName}"]`)
+          .classList.add("active");
+
+        // Update dialogue wrappers
+        document.querySelectorAll(".dialogue-wrapper").forEach((wrapper) => {
+          wrapper.classList.remove("active");
+        });
+        document
+          .getElementById(`log-wrapper-${modelName}`)
+          .classList.add("active");
+      }
+
+      // =============================================
+      // CANVAS + PIXEL ENGINE (per model)
+      // =============================================
+      const SPRITES = {
+        PLAYER: [
+          [0, 0, 1, 1, 0, 0],
+          [0, 1, 2, 2, 1, 0],
+          [1, 2, 5, 6, 2, 1],
+          [1, 2, 2, 2, 2, 1],
+          [0, 1, 2, 2, 1, 0],
+          [0, 4, 4, 4, 4, 0],
+          [0, 4, 0, 0, 4, 0],
+          [4, 4, 0, 0, 4, 4],
+        ],
+        FISH: [
+          [0, 0, 1, 1, 0],
+          [0, 1, 1, 2, 1],
+          [1, 1, 3, 1, 0],
+          [0, 1, 1, 2, 1],
+          [0, 0, 1, 1, 0],
+        ],
+        TREE: [
+          [0, 0, 1, 1, 0, 0],
+          [0, 1, 1, 1, 1, 0],
+          [1, 1, 1, 1, 1, 1],
+          [1, 1, 1, 1, 1, 1],
+          [0, 1, 1, 1, 1, 0],
+          [0, 0, 2, 2, 0, 0],
+          [0, 0, 2, 2, 0, 0],
+          [0, 0, 2, 2, 0, 0],
+        ],
+        SKULL: [
+          [0, 0, 1, 1, 1, 0, 0],
+          [0, 1, 1, 1, 1, 1, 0],
+          [1, 1, 2, 1, 2, 1, 1],
+          [1, 1, 1, 1, 1, 1, 1],
+          [0, 1, 1, 1, 1, 1, 0],
+          [0, 1, 2, 1, 2, 1, 0],
+          [0, 0, 1, 0, 1, 0, 0],
+        ],
+        CAMPFIRE: [
+          [0, 0, 1, 2, 1, 0, 0],
+          [0, 1, 2, 3, 2, 1, 0],
+          [1, 2, 3, 2, 1, 2, 1],
+          [0, 0, 4, 4, 4, 0, 0],
+          [0, 0, 4, 4, 4, 0, 0],
+        ],
+      };
+
+      const COLORS = {
+        FISH: ["transparent", "#4dd0e1", "#26c6da", "#00acc1"],
+        TREE: ["transparent", "#2e7d32", "#5d4037"],
+        SKULL: ["transparent", "#ddd", "#555"],
+        WATER: ["#28648c", "#2c709e"],
+        SAND: "#e6c288",
+        GRASS: "#66bb6a",
+        FIRE: ["transparent", "#d84315", "#f4511e", "#ff6e40", "#5d4037"],
+        CAMPFIRE: ["transparent", "#d84315", "#f4511e", "#ff6e40", "#5d4037"],
+      };
+
+      const COLOR_PALETTE = [
+        "#e57373",
+        "#81c784",
+        "#64b5f6",
+        "#fff176",
+        "#ba68c8",
+        "#4dd0e1",
+        "#ff8a65",
+        "#f06292",
+        "#aed581",
+        "#4db6ac",
+        "#dce775",
+        "#7986cb",
+        "#a1887f",
+        "#90a4ae",
+        "#ffb300",
+        "#26c6da",
+        "#ef5350",
+        "#66bb6a",
+        "#42a5f5",
+        "#ab47bc",
+        "#26a69a",
+      ];
+
+      const MAP_W = 160;
+      const MAP_H = 120;
+
+      // State per model
+      const modelStates = {
+        sonnet: {
+          canvas: null,
+          ctx: null,
+          W: 0,
+          H: 0,
+          players: {},
+          fish: [],
+          trees: [],
+          particles: [],
+          colorIndex: 0,
+          AGENT_COLORS: {},
+        },
+        opus: {
+          canvas: null,
+          ctx: null,
+          W: 0,
+          H: 0,
+          players: {},
+          fish: [],
+          trees: [],
+          particles: [],
+          colorIndex: 0,
+          AGENT_COLORS: {},
+        },
+        haiku: {
+          canvas: null,
+          ctx: null,
+          W: 0,
+          H: 0,
+          players: {},
+          fish: [],
+          trees: [],
+          particles: [],
+          colorIndex: 0,
+          AGENT_COLORS: {},
+        },
+      };
+
+      function initCanvas(modelName) {
+        const state = modelStates[modelName];
+        state.canvas = document.getElementById(`canvas-${modelName}`);
+        state.ctx = state.canvas.getContext("2d");
+
+        const container = document.getElementById("game-container");
+        state.W = container.clientWidth;
+        state.H = container.clientHeight;
+        state.canvas.width = state.W;
+        state.canvas.height = state.H;
+        state.ctx.imageSmoothingEnabled = false;
+
+        generateIsland(modelName);
+      }
+
+      function generateIsland(modelName) {
+        const state = modelStates[modelName];
+        state.trees = [];
+        for (let i = 0; i < 15; i++) {
+          const r = Math.random() * 40,
+            theta = Math.random() * Math.PI * 2;
+          state.trees.push({
+            x: MAP_W / 2 + r * Math.cos(theta) - 3,
+            y: MAP_H / 2 + r * Math.sin(theta) - 3,
+          });
+        }
+      }
+
+      function resizeGame() {
+        Object.keys(modelStates).forEach(initCanvas);
+        resizeCharts();
+      }
+
+      window.addEventListener("resize", resizeGame);
+      Object.keys(modelStates).forEach(initCanvas);
+
+      // =============================================
+      // CHART ENGINE (combined for all models)
+      // =============================================
+      const wildCanvas = document.getElementById("wildChart");
+      const wildCtx = wildCanvas.getContext("2d");
+      const popCanvas = document.getElementById("popChart");
+      const popCtx = popCanvas.getContext("2d");
+
+      const chartData = {
+        sonnet: { wild: [], stash: [], pop: [] },
+        opus: { wild: [], stash: [], pop: [] },
+        haiku: { wild: [], stash: [], pop: [] },
+      };
+
+      function resizeCharts() {
+        [wildCanvas, popCanvas].forEach((c) => {
+          const wrap = c.parentElement;
+          c.width = wrap.clientWidth;
+          c.height = wrap.clientHeight;
+        });
+        drawMultiModelChart(wildCtx, wildCanvas, "wild");
+        drawMultiModelChart(popCtx, popCanvas, "pop");
+      }
+
+      function drawMultiModelChart(c, canvas, dataType) {
+        const w = canvas.width,
+          h = canvas.height;
+        c.clearRect(0, 0, w, h);
+
+        const padding = { top: 6, right: 8, bottom: 20, left: 30 };
+        const plotW = w - padding.left - padding.right;
+        const plotH = h - padding.top - padding.bottom;
+
+        if (plotW <= 0 || plotH <= 0) return;
+
+        // Grid lines
+        c.strokeStyle = "#2a2a2a";
+        c.lineWidth = 1;
+        const gridLines = 4;
+        for (let i = 0; i <= gridLines; i++) {
+          const y = padding.top + (i / gridLines) * plotH;
+          c.beginPath();
+          c.moveTo(padding.left, y);
+          c.lineTo(padding.left + plotW, y);
+          c.stroke();
+        }
+
+        // Axes
+        c.strokeStyle = "#444";
+        c.lineWidth = 1;
+        c.beginPath();
+        c.moveTo(padding.left, padding.top);
+        c.lineTo(padding.left, padding.top + plotH);
+        c.lineTo(padding.left + plotW, padding.top + plotH);
+        c.stroke();
+
+        // Get all data
+        const allData = {
+          sonnet: chartData.sonnet[dataType],
+          opus: chartData.opus[dataType],
+          haiku: chartData.haiku[dataType],
+        };
+
+        const hasData = Object.values(allData).some((d) => d.length > 0);
+        if (!hasData) {
+          c.fillStyle = "#444";
+          c.font = "14px VT323, monospace";
+          c.textAlign = "center";
+          c.fillText(
+            "No data yet",
+            padding.left + plotW / 2,
+            padding.top + plotH / 2 + 5,
+          );
+          return;
+        }
+
+        // Find max values across all models
+        const maxVal = Math.max(
+          1,
+          ...Object.values(allData).flatMap((history) =>
+            history.map((d) => d.value),
+          ),
+        );
+        const maxDay = Math.max(
+          1,
+          ...Object.values(allData).flatMap((history) =>
+            history.map((d) => d.day),
+          ),
+        );
+        const xRange = Math.max(maxDay - 1, 1);
+        const xScale = plotW / xRange;
+        const yScale = plotH / maxVal;
+
+        function toScreenX(day) {
+          return padding.left + (day - 1) * xScale;
+        }
+        function toScreenY(val) {
+          return padding.top + plotH - val * yScale;
+        }
+
+        // Draw each model's line
+        Object.entries(allData).forEach(([model, history]) => {
+          if (history.length === 0) return;
+
+          const lineColor = MODEL_COLORS[model];
+
+          // Line
+          c.beginPath();
+          history.forEach((d, i) => {
+            const x = toScreenX(d.day),
+              y = toScreenY(d.value);
+            if (i === 0) c.moveTo(x, y);
+            else c.lineTo(x, y);
+          });
+          c.strokeStyle = lineColor;
+          c.lineWidth = 2;
+          c.stroke();
+
+          // Dots
+          history.forEach((d) => {
+            const x = toScreenX(d.day),
+              y = toScreenY(d.value);
+            c.beginPath();
+            c.arc(x, y, 2.5, 0, Math.PI * 2);
+            c.fillStyle = lineColor;
+            c.fill();
+          });
+
+          // Current value label
+          const last = history[history.length - 1];
+          const lx = toScreenX(last.day),
+            ly = toScreenY(last.value);
+          c.fillStyle = lineColor;
+          c.font = "12px VT323, monospace";
+          c.textAlign = "left";
+          c.fillText(`${model}: ${last.value}`, lx + 5, ly);
+        });
+
+        // Y-axis labels
+        c.fillStyle = "#888";
+        c.font = "12px VT323, monospace";
+        c.textAlign = "right";
+        c.fillText(maxVal, padding.left - 3, padding.top + 8);
+        c.fillText(0, padding.left - 3, padding.top + plotH);
+
+        // X-axis day ticks
+        c.fillStyle = "#555";
+        c.font = "11px VT323, monospace";
+        c.textAlign = "center";
+        for (let d = 1; d <= maxDay; d++) {
+          const x = toScreenX(d);
+          c.fillText(d, x, padding.top + plotH + 14);
+        }
+      }
+
+      function pushChartData(model, day, wildVal, stashVal) {
+        const updateArr = (arr, val) => {
+          const existing = arr.find((d) => d.day === day);
+          if (existing) existing.value = val;
+          else arr.push({ day, value: val });
+        };
+        updateArr(chartData[model].wild, wildVal);
+        updateArr(chartData[model].stash, stashVal);
+
+        drawMultiModelChart(wildCtx, wildCanvas, "wild");
+      }
+
+      function pushPopData(model, day) {
+        const state = modelStates[model];
+        const alive = Object.values(state.players).filter(
+          (p) => p.alive,
+        ).length;
+        const updateArr = (arr, val) => {
+          const existing = arr.find((d) => d.day === day);
+          if (existing) existing.value = val;
+          else arr.push({ day, value: val });
+        };
+        updateArr(chartData[model].pop, alive);
+        drawMultiModelChart(popCtx, popCanvas, "pop");
+
+        // Update leaderboard
+        updateLeaderboard();
+      }
+
+      function updateLeaderboard() {
+        // Get current population for each model
+        const populations = {
+          sonnet: Object.values(modelStates.sonnet.players).filter(
+            (p) => p.alive,
+          ).length,
+          opus: Object.values(modelStates.opus.players).filter((p) => p.alive)
+            .length,
+          haiku: Object.values(modelStates.haiku.players).filter((p) => p.alive)
+            .length,
+        };
+
+        // Update population counts
+        document.getElementById("lb-pop-sonnet").textContent =
+          populations.sonnet;
+        document.getElementById("lb-pop-opus").textContent = populations.opus;
+        document.getElementById("lb-pop-haiku").textContent = populations.haiku;
+
+        // Sort models by population
+        const sorted = Object.entries(populations).sort((a, b) => b[1] - a[1]);
+
+        // Update rankings
+        const leaderboard = document.getElementById("leaderboard");
+        sorted.forEach(([modelName, pop], index) => {
+          const row = leaderboard.querySelector(
+            `.leaderboard-row[data-model="${modelName}"]`,
+          );
+          const rank = index + 1;
+
+          // Update rank badge
+          row.querySelector(".rank-badge").textContent = `#${rank}`;
+
+          // Update data-rank attribute for styling
+          row.setAttribute("data-rank", rank);
+
+          // Reorder in DOM
+          leaderboard.appendChild(row);
+        });
+      }
+
+      // =============================================
+      // WEBSOCKET
+      // =============================================
+      const ws = new WebSocket(`ws://${window.location.host}/ws`);
+      ws.onmessage = (e) => handleEvent(JSON.parse(e.data));
+
+      function startSim() {
+        ws.send(JSON.stringify({ command: "start" }));
+        document.getElementById("start-btn").disabled = true;
+        document.getElementById("start-btn").innerText = "RUNNING...";
+
+        // Clear all logs and data
+        Object.keys(modelStates).forEach((model) => {
+          document.getElementById(`log-wrapper-${model}`).innerHTML = "";
+          modelStates[model].colorIndex = 0;
+          chartData[model].wild = [];
+          chartData[model].stash = [];
+          chartData[model].pop = [];
+        });
+        resizeCharts();
+        updateLeaderboard();
+      }
+
+      function handleEvent(data) {
+        const model = data.model || "sonnet";
+        const state = modelStates[model];
+
+        if (data.type === "INIT") {
+          state.colorIndex = 0;
+          data.agent_ids.forEach((id) => {
+            spawnAgent(model, id);
+          });
+        } else if (data.type === "BORN") {
+          spawnAgent(model, data.id);
+          const banner = document.getElementById(`born-banner-${model}`);
+          banner.textContent = `🐣 ${data.id} joins the island! (skill: ${data.skill})`;
+          banner.style.opacity = 1;
+          setTimeout(() => (banner.style.opacity = 0), 3500);
+          addDialogueMessage(
+            model,
+            data.id,
+            `${data.id} has joined the island.`,
+            "born",
+          );
+          const currentDay =
+            parseInt(document.getElementById(`stat-day-${model}`).innerText) ||
+            0;
+          pushPopData(model, currentDay);
+        } else if (data.type === "UPDATE_STATS") {
+          document.getElementById(`stat-day-${model}`).innerText = data.day;
+          syncFish(model, data.wild);
+          pushChartData(model, data.day, data.wild, data.stash);
+          pushPopData(model, data.day);
+        } else if (data.type === "MOVE") {
+          data.ids.forEach((id) => {
+            if (!state.players[id]) return;
+            if (data.loc === "water") {
+              const angle = Math.random() * Math.PI * 2,
+                r = 72 + Math.random() * 15;
+              state.players[id].tx = MAP_W / 2 + Math.cos(angle) * r;
+              state.players[id].ty = MAP_H / 2 + Math.sin(angle) * r;
+            } else {
+              const idx = Object.keys(state.players).indexOf(id);
+              const homeAngle = (idx / 8) * Math.PI * 2;
+              const homeR = 12 + (idx % 3) * 5;
+              state.players[id].tx = MAP_W / 2 + Math.cos(homeAngle) * homeR;
+              state.players[id].ty = MAP_H / 2 + Math.sin(homeAngle) * homeR;
+            }
+          });
+        } else if (data.type === "PHASE") {
+          document.getElementById(`phase-banner-${model}`).innerText =
+            data.text;
+          log(model, data.text, "phase");
+        } else if (data.type === "LOG") log(model, data.text);
+        else if (data.type === "SPEECH") showBubble(model, data.id, data.text);
+        else if (data.type === "SHOW_STATUS") {
+          showBubble(model, data.id, data.text, true);
+          if (data.text && data.text.startsWith("Ate ")) {
+            const amt = parseInt(data.text.replace("Ate ", ""));
+            if (amt >= 1 && state.players[data.id])
+              state.players[data.id].eatPop = 60;
+          }
+        } else if (data.type === "SET_LEADER") {
+          Object.values(state.players).forEach(
+            (p) => (p.isLeader = p.id === data.id),
+          );
+        } else if (data.type === "DIE") {
+          if (state.players[data.id]) state.players[data.id].alive = false;
+          addDialogueMessage(model, data.id, "💀 Died of starvation.", "death");
+          const currentDay =
+            parseInt(document.getElementById(`stat-day-${model}`).innerText) ||
+            0;
+          pushPopData(model, currentDay);
+        }
+      }
+
+      function spawnAgent(model, id) {
+        const state = modelStates[model];
+        const color = COLOR_PALETTE[state.colorIndex % COLOR_PALETTE.length];
+        state.colorIndex++;
+        state.AGENT_COLORS[id] = color;
+        const idx = Object.keys(state.players).length;
+        const spawnAngle = (idx / 8) * Math.PI * 2;
+        const spawnR = 12 + (idx % 3) * 5;
+        const sx = MAP_W / 2 + Math.cos(spawnAngle) * spawnR;
+        const sy = MAP_H / 2 + Math.sin(spawnAngle) * spawnR;
+        state.players[id] = {
+          id,
+          color,
+          x: sx,
+          y: sy,
+          tx: sx,
+          ty: sy,
+          alive: true,
+          isLeader: false,
+          eatPop: 0,
+        };
+        createBubble(model, id);
+      }
+
+      function syncFish(model, count) {
+        const state = modelStates[model];
+        const target = Math.min(count, 15);
+        while (state.fish.length < target) {
+          const angle = Math.random() * Math.PI * 2,
+            r = 75 + Math.random() * 20;
+          state.fish.push({
+            x: MAP_W / 2 + Math.cos(angle) * r,
+            y: MAP_H / 2 + Math.sin(angle) * r,
+            vx: (Math.random() - 0.5) * 0.2,
+            vy: (Math.random() - 0.5) * 0.2,
+          });
+        }
+        while (state.fish.length > target) state.fish.pop();
+      }
+
+      // =============================================
+      // RENDER ENGINE
+      // =============================================
+      function drawPixel(state, x, y, color) {
+        state.ctx.fillStyle = color;
+        const pixelW = state.W / MAP_W,
+          pixelH = state.H / MAP_H;
+        const size = Math.min(pixelW, pixelH);
+        const offsetX = (state.W - size * MAP_W) / 2,
+          offsetY = (state.H - size * MAP_H) / 2;
+        state.ctx.fillRect(
+          offsetX + Math.floor(x) * size,
+          offsetY + Math.floor(y) * size,
+          size + 1,
+          size + 1,
+        );
+      }
+
+      function drawSprite(state, key, x, y, palette) {
+        const grid = SPRITES[key];
+        for (let r = 0; r < grid.length; r++)
+          for (let c = 0; c < grid[r].length; c++)
+            if (grid[r][c] > 0)
+              drawPixel(state, x + c, y + r, palette[grid[r][c]]);
+      }
+
+      function gameLoop() {
+        Object.entries(modelStates).forEach(([modelName, state]) => {
+          const ctx = state.ctx;
+          const W = state.W,
+            H = state.H;
+
+          ctx.fillStyle = "#111";
+          ctx.fillRect(0, 0, W, H);
+
+          const pixelSize = Math.min(W / MAP_W, H / MAP_H);
+          const offsetX = (W - pixelSize * MAP_W) / 2,
+            offsetY = (H - pixelSize * MAP_H) / 2;
+
+          ctx.fillStyle = COLORS.WATER[0];
+          ctx.fillRect(offsetX, offsetY, MAP_W * pixelSize, MAP_H * pixelSize);
+
+          const cx = MAP_W / 2,
+            cy = MAP_H / 2;
+          for (let y = 0; y < MAP_H; y++) {
+            for (let x = 0; x < MAP_W; x++) {
+              const d = Math.sqrt((x - cx) ** 2 + (y - cy) ** 2);
+              if (d < 62) {
+                drawPixel(
+                  state,
+                  x,
+                  y,
+                  Math.random() > 0.95 ? "#dcc080" : COLORS.SAND,
+                );
+              } else if (d < 68) {
+                if (Math.random() > 0.5)
+                  drawPixel(state, x, y, COLORS.WATER[1]);
+              }
+            }
+          }
+          for (let y = 0; y < MAP_H; y++) {
+            for (let x = 0; x < MAP_W; x++) {
+              const d = Math.sqrt((x - cx) ** 2 + (y - cy) ** 2);
+              if (d < 38) drawPixel(state, x, y, COLORS.GRASS);
+            }
+          }
+
+          state.trees.forEach((t) =>
+            drawSprite(state, "TREE", t.x, t.y, COLORS.TREE),
+          );
+
+          // Draw campfire at island center
+          drawSprite(state, "CAMPFIRE", cx - 3, cy - 2, COLORS.CAMPFIRE);
+
+          // Animated fire particles above campfire
+          if (Math.random() > 0.5)
+            state.particles.push({ x: cx, y: cy - 3, life: 1.0 });
+          state.particles.forEach((p, i) => {
+            p.y -= 0.2;
+            p.life -= 0.1;
+            drawPixel(
+              state,
+              p.x + (Math.random() - 0.5) * 2,
+              p.y,
+              COLORS.FIRE[Math.floor(Math.random() * COLORS.FIRE.length)],
+            );
+            if (p.life <= 0) state.particles.splice(i, 1);
+          });
+
+          state.fish.forEach((f) => {
+            f.x += f.vx;
+            f.y += f.vy;
+            const d = Math.sqrt((f.x - cx) ** 2 + (f.y - cy) ** 2);
+            if (d < 68) {
+              f.vx *= -1;
+              f.vy *= -1;
+            }
+            if (f.x < 0 || f.x > MAP_W) f.vx *= -1;
+            if (f.y < 0 || f.y > MAP_H) f.vy *= -1;
+            drawSprite(state, "FISH", f.x, f.y, COLORS.FISH);
+          });
+
+          Object.values(state.players).forEach((p) => {
+            if (!p.alive) {
+              drawSprite(state, "SKULL", p.x, p.y, COLORS.SKULL);
+              return;
+            }
+            p.x += (p.tx - p.x) * 0.05;
+            p.y += (p.ty - p.y) * 0.05;
+            const palette = [
+              "transparent",
+              "#000",
+              "#fec",
+              "#000",
+              p.color,
+              "#fff",
+              "#111",
+            ];
+            drawSprite(state, "PLAYER", p.x, p.y, palette);
+            {
+              const sx = offsetX + p.x * pixelSize;
+              const sy = offsetY + p.y * pixelSize;
+              const tagFontSize = Math.max(8, Math.floor(pixelSize * 4));
+              ctx.font = `bold ${tagFontSize}px VT323, monospace`;
+              ctx.textAlign = "center";
+              const tw = ctx.measureText(p.id).width;
+              ctx.fillStyle = "rgba(0,0,0,0.65)";
+              ctx.fillRect(
+                sx + pixelSize * 3 - tw / 2 - 2,
+                sy - tagFontSize - 2,
+                tw + 4,
+                tagFontSize + 2,
+              );
+              ctx.fillStyle = p.color;
+              ctx.fillText(p.id, sx + pixelSize * 3, sy - 3);
+            }
+            if (p.isLeader) {
+              drawPixel(state, p.x + 3, p.y - 2, "#ffd700");
+              drawPixel(state, p.x + 2, p.y - 1, "#ffd700");
+              drawPixel(state, p.x + 4, p.y - 1, "#ffd700");
+            }
+            if (p.eatPop > 0) {
+              const progress = p.eatPop / 60;
+              const sx = offsetX + p.x * pixelSize;
+              const sy = offsetY + p.y * pixelSize;
+              const rise = (1 - progress) * pixelSize * 12;
+              const eatFontSize = Math.max(9, Math.floor(pixelSize * 5));
+              ctx.font = `bold ${eatFontSize}px VT323, monospace`;
+              ctx.textAlign = "center";
+              ctx.globalAlpha = Math.min(1, progress * 3);
+              ctx.fillStyle = "#a5d6a7";
+              ctx.fillText("+1 🍴", sx + pixelSize * 3, sy - rise);
+              ctx.globalAlpha = 1;
+              p.eatPop--;
+            }
+            const bubble = document.getElementById(
+              `bubble-${modelName}-${p.id}`,
+            );
+            if (bubble) {
+              const sx = offsetX + p.x * pixelSize;
+              const sy = offsetY + p.y * pixelSize;
+              bubble.style.left = `${sx + pixelSize * 3}px`;
+              bubble.style.top = `${sy - 10}px`;
+            }
+          });
+        });
+
+        requestAnimationFrame(gameLoop);
+      }
+
+      // =============================================
+      // DIALOGUE FEED
+      // =============================================
+      function scrollDialogueToBottom(model) {
+        const w = document.getElementById(`log-wrapper-${model}`);
+        w.scrollTop = w.scrollHeight;
+      }
+
+      function addDialogueMessage(model, id, text, type = "speech") {
+        const state = modelStates[model];
+        const w = document.getElementById(`log-wrapper-${model}`);
+        const agent = state.players[id];
+        const color = state.AGENT_COLORS[id] || "#aaa";
+        const isLeader = agent && agent.isLeader;
+        const isDead = agent && !agent.alive;
+
+        const row = document.createElement("div");
+        row.className = "dialogue-msg";
+
+        const av = document.createElement("div");
+        av.className = "dialogue-avatar" + (isDead ? " dead" : "");
+        av.style.background = isDead ? "" : color;
+        av.style.borderColor = isDead ? "#555" : "#000";
+        if (type === "born") av.style.animation = "bornFlash 1s ease";
+        av.textContent = id ? id[0] : "?";
+
+        const bubble = document.createElement("div");
+        bubble.className = "dialogue-bubble";
+
+        const nameEl = document.createElement("div");
+        nameEl.className = "dialogue-name";
+        nameEl.style.color = color;
+        nameEl.innerHTML =
+          id +
+          (isLeader ? ' <span class="leader-crown">👑</span>' : "") +
+          (type === "born"
+            ? ' <span style="font-size:11px">🐣 NEW</span>'
+            : "");
+
+        const textEl = document.createElement("div");
+        textEl.className =
+          "dialogue-text" +
+          (type === "status"
+            ? " status"
+            : type === "death"
+              ? " death"
+              : type === "born"
+                ? " born"
+                : "");
+        textEl.style.borderLeftColor = color;
+        textEl.textContent = text;
+
+        bubble.appendChild(nameEl);
+        bubble.appendChild(textEl);
+        row.appendChild(av);
+        row.appendChild(bubble);
+        w.appendChild(row);
+        scrollDialogueToBottom(model);
+      }
+
+      function log(model, msg, type = "normal") {
+        const w = document.getElementById(`log-wrapper-${model}`);
+        if (type === "phase") {
+          const d = document.createElement("div");
+          d.className = "log-phase";
+          d.textContent = "— " + msg + " —";
+          w.appendChild(d);
+        } else {
+          const d = document.createElement("div");
+          d.className = "log-system";
+          d.textContent = msg;
+          w.appendChild(d);
+        }
+        scrollDialogueToBottom(model);
+      }
+
+      function createBubble(model, id) {
+        const view = document.querySelector(
+          `.island-view[data-model="${model}"]`,
+        );
+        const b = document.createElement("div");
+        b.id = `bubble-${model}-${id}`;
+        b.className = "bubble";
+        view.appendChild(b);
+      }
+
+      function showBubble(model, id, text, special = false) {
+        const filtered = ["Yum.", "Yum!", "yum.", "yum!"];
+        if (filtered.includes(text.trim())) return;
+        const b = document.getElementById(`bubble-${model}-${id}`);
+        if (b) {
+          b.innerText = text;
+          b.style.opacity = 1;
+          b.style.borderColor = special ? "#4fc3f7" : "#000";
+          setTimeout(() => (b.style.opacity = 0), 3000);
+        }
+        addDialogueMessage(model, id, text, special ? "status" : "speech");
+      }
+
+      // Init
+      resizeCharts();
+      gameLoop();
+    </script>
   </body>
 </html>
