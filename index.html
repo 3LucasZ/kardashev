@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI Tribe: Pixel Edition</title>
+
+    <!-- Google Font -->
+    <link
+      href="https://fonts.googleapis.com/css2?family=VT323&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="/static/css/style.css" />
+  </head>
+
+  <body>
+    <!-- Main Layout -->
+    <div id="game-layout">
+      <!-- Left Panel: Game Canvas + Charts -->
+      <div id="left-panel">
+        <!-- Game Canvas Container -->
+        <div id="game-container">
+          <canvas id="gameCanvas"></canvas>
+          <div id="phase-banner">Waiting to Start...</div>
+          <div id="born-banner"></div>
+        </div>
+
+        <!-- Charts Panel -->
+        <div id="charts-panel">
+          <div id="charts-title">📈 Population Tracker</div>
+
+          <!-- Wild Fish Chart -->
+          <div class="chart-wrapper">
+            <div class="chart-label wild" id="wild-label">🐟 Wild Fish: 0</div>
+            <div class="chart-canvas-wrap">
+              <canvas id="wildChart"></canvas>
+            </div>
+          </div>
+
+          <!-- Village Stash Chart -->
+          <div class="chart-wrapper">
+            <div class="chart-label stash" id="stash-label">
+              🪣 Village Stash: 0
+            </div>
+            <div class="chart-canvas-wrap">
+              <canvas id="stashChart"></canvas>
+            </div>
+          </div>
+
+          <!-- Population Chart -->
+          <div class="chart-wrapper">
+            <div class="chart-label population" id="pop-label">
+              👥 Population: 0
+            </div>
+            <div class="chart-canvas-wrap">
+              <canvas id="popChart"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Sidebar: Controls + Dialogue -->
+      <div id="sidebar">
+        <!-- Start Button -->
+        <div id="controls">
+          <button id="start-btn" onclick="startSim()">> START GAME</button>
+        </div>
+
+        <!-- Disaster Input -->
+        <div class="pixel-card" style="margin-top: 15px">
+          <div class="stat-label" style="color: #ef5350">
+            ⚡ Divine Intervention
+          </div>
+          <input
+            id="disaster-input"
+            type="text"
+            placeholder="Type disaster & press Enter..."
+          />
+        </div>
+
+        <!-- Game Stats -->
+        <div class="pixel-card">
+          <div class="stat-label">Day</div>
+          <div class="stat-value" id="stat-day">0</div>
+        </div>
+
+        <div style="display: flex; gap: 10px">
+          <div class="pixel-card" style="flex: 1">
+            <div class="stat-label">Fish</div>
+            <div class="stat-value highlight" id="stat-wild">0</div>
+          </div>
+          <div class="pixel-card" style="flex: 1">
+            <div class="stat-label">Stash</div>
+            <div class="stat-value warning" id="stat-stash">0</div>
+          </div>
+        </div>
+
+        <!-- Dialogue Feed -->
+        <div id="dialogue-header">💬 Agent Dialogue</div>
+        <div id="log-wrapper"></div>
+      </div>
+    </div>
+
+    <!-- JavaScript Modules -->
+    <script src="/static/js/sprite-loader.js"></script>
+    <script src="/static/js/game.js"></script>
+    <script src="/static/js/charts.js"></script>
+    <script src="/static/js/ui.js"></script>
+    <script src="/static/js/websocket.js"></script>
+  </body>
+</html>
