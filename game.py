@@ -6,7 +6,7 @@ from config import GAME_CONFIG
 from llm import call_llm, extract_json, gather_votes
 
 
-async def run_simulation(model_name: str, model_id: str, manager):
+async def run_simulation(model_name: str, model_id: str, manager, game_states: dict = None):
     """
     Main game simulation loop for a specific model.
 
@@ -14,6 +14,7 @@ async def run_simulation(model_name: str, model_id: str, manager):
         model_name: Display name of the model (e.g., "sonnet", "opus", "haiku")
         model_id: Claude model ID to use for LLM calls
         manager: ConnectionManager instance for broadcasting
+        game_states: Optional dict to store state references for disaster system
     """
     await manager.broadcast({"type": "LOG", "text": f"=== {model_name.upper()} SIMULATION STARTED ===", "model": model_name})
 
@@ -23,8 +24,13 @@ async def run_simulation(model_name: str, model_id: str, manager):
         "wild_fish": GAME_CONFIG["STARTING_WILD_FISH"],
         "village_stash": GAME_CONFIG["STARTING_STASH"],
         "agents": {},
-        "game_over": False
+        "game_over": False,
+        "fish_growth_penalty": 0  # Days remaining of reduced fish growth
     }
+
+    # Store reference for disaster system
+    if game_states is not None:
+        game_states[model_name] = state
 
     # Initialize agents from name pool
     agent_count = GAME_CONFIG["INITIAL_AGENT_COUNT"]
@@ -44,10 +50,16 @@ async def run_simulation(model_name: str, model_id: str, manager):
 
         await manager.broadcast({"type": "PHASE", "text": f"DAY {state['day']}", "model": model_name})
 
-        # Natural Growth
-        growth = int(state["wild_fish"] * GAME_CONFIG["FISH_GROWTH_RATE"])
+        # Natural Growth (affected by disaster penalty)
+        if state["fish_growth_penalty"] > 0:
+            growth = int(state["wild_fish"] * GAME_CONFIG["FISH_GROWTH_RATE"] * 0.3)  # Reduced growth
+            state["fish_growth_penalty"] -= 1
+            await manager.broadcast({"type": "LOG", "text": f"[NATURE] Fish grew by {growth} (reduced by disaster).", "model": model_name})
+        else:
+            growth = int(state["wild_fish"] * GAME_CONFIG["FISH_GROWTH_RATE"])
+            await manager.broadcast({"type": "LOG", "text": f"[NATURE] Fish grew by {growth}.", "model": model_name})
+
         state["wild_fish"] += growth
-        await manager.broadcast({"type": "LOG", "text": f"[NATURE] Fish grew by {growth}.", "model": model_name})
         await manager.broadcast({"type": "UPDATE_STATS", "day": state["day"], "wild": state['wild_fish'], "stash": state['village_stash'], "model": model_name})
 
         alive_agents = [aid for aid,

@@ -117,3 +117,12 @@ function showBubble(model, id, text, special = false) {
   }
   addDialogueMessage(model, id, text, special ? "status" : "speech");
 }
+
+function showDisasterFeedback(text, isError = false) {
+  const feedback = document.getElementById("disaster-feedback");
+  feedback.textContent = text;
+  feedback.style.color = isError ? "#ff6b6b" : "#81c784";
+  setTimeout(() => {
+    feedback.textContent = "";
+  }, 5000);
+}

@@ -20,11 +20,29 @@ function startSim() {
   updateLeaderboard();
 }
 
+function sendDisaster(disasterText) {
+  if (!disasterText.trim()) return;
+  ws.send(JSON.stringify({ command: "disaster", text: disasterText }));
+  document.getElementById("disaster-input").value = "";
+  showDisasterFeedback("Processing disaster...");
+}
+
 function handleEvent(data) {
   const model = data.model || "sonnet";
   const state = modelStates[model];
 
-  if (data.type === "INIT") {
+  if (data.type === "DISASTER") {
+    // Show disaster banner
+    const banner = document.getElementById(`phase-banner-${model}`);
+    banner.innerText = `⚠️ DISASTER: ${data.disaster_name}`;
+    banner.style.background = "#ff6b6b";
+    setTimeout(() => {
+      banner.style.background = "";
+    }, 5000);
+    log(model, `🌋 DISASTER: ${data.disaster_name}`, "phase");
+    log(model, data.description);
+    showDisasterFeedback(`Disaster "${data.disaster_name}" applied!`);
+  } else if (data.type === "INIT") {
     state.colorIndex = 0;
     data.agent_ids.forEach((id) => {
       spawnAgent(model, id);
