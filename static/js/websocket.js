@@ -37,7 +37,12 @@ function handleEvent(data) {
     banner.textContent = `🐣 ${data.id} joins the island! (skill: ${data.skill})`;
     banner.style.opacity = 1;
     setTimeout(() => (banner.style.opacity = 0), 3500);
-    addDialogueMessage(model, data.id, `${data.id} has joined the island.`, "born");
+    addDialogueMessage(
+      model,
+      data.id,
+      `${data.id} has joined the island.`,
+      "born",
+    );
     const currentDay =
       parseInt(document.getElementById(`stat-day-${model}`).innerText) || 0;
     pushPopData(model, currentDay);
@@ -50,9 +55,10 @@ function handleEvent(data) {
     data.ids.forEach((id, index) => {
       if (!state.players[id]) return;
       if (data.loc === "water") {
-        // Walk to edge of sand (radius 58-60)
-        const angle = (index / data.ids.length) * Math.PI * 2 + Math.random() * 0.3;
-        const r = 58 + Math.random() * 2; // At the sand edge
+        // Walk to fishing spot
+        const angle =
+          (index / data.ids.length) * Math.PI * 2 + Math.random() * 0.3;
+        const r = 58 + Math.random() * 2;
         state.players[id].tx = MAP_W / 2 + Math.cos(angle) * r;
         state.players[id].ty = MAP_H / 2 + Math.sin(angle) * r;
         state.players[id].idleWalkTimer = 999; // Don't wander while fishing
@@ -80,7 +86,9 @@ function handleEvent(data) {
         state.players[data.id].eatPop = 60;
     }
   } else if (data.type === "SET_LEADER") {
-    Object.values(state.players).forEach((p) => (p.isLeader = p.id === data.id));
+    Object.values(state.players).forEach(
+      (p) => (p.isLeader = p.id === data.id),
+    );
   } else if (data.type === "DIE") {
     if (state.players[data.id]) state.players[data.id].alive = false;
     syncHouses(model);

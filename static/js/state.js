@@ -66,7 +66,7 @@ function syncFish(model, count) {
   while (state.fish.length < target) {
     const angle = Math.random() * Math.PI * 2;
     // Spawn fish in the pond (between radius 65 and 95)
-    const r = 65 + Math.random() * 30;
+    const r = 65 + Math.random() * 5;
     state.fish.push({
       x: MAP_W / 2 + Math.cos(angle) * r,
       y: MAP_H / 2 + Math.sin(angle) * r,

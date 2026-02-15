@@ -50,7 +50,8 @@ async def run_simulation(model_name: str, model_id: str, manager):
         await manager.broadcast({"type": "LOG", "text": f"[NATURE] Fish grew by {growth}.", "model": model_name})
         await manager.broadcast({"type": "UPDATE_STATS", "day": state["day"], "wild": state['wild_fish'], "stash": state['village_stash'], "model": model_name})
 
-        alive_agents = [aid for aid, data in state["agents"].items() if data["alive"]]
+        alive_agents = [aid for aid,
+                        data in state["agents"].items() if data["alive"]]
         if not alive_agents:
             await manager.broadcast({"type": "PHASE", "text": "GAME OVER: EXTINCTION", "model": model_name})
             break
@@ -68,7 +69,8 @@ async def run_simulation(model_name: str, model_id: str, manager):
         fishing_team = []
         fishing_passed = False
 
-        agent_data_str = json.dumps({k: v['skill'] for k, v in state['agents'].items() if v['alive']})
+        agent_data_str = json.dumps(
+            {k: v['skill'] for k, v in state['agents'].items() if v['alive']})
 
         leader_prompt = f"""
         You are {leader_id}, LEADER. Day {state['day']} of {state['max_days']}.
@@ -90,7 +92,8 @@ async def run_simulation(model_name: str, model_id: str, manager):
         OUTPUT JSON: {{ "say": "brief dialogue explaining your decision", "justification": "reasoning", "team": ["AgentName1", "AgentName2"] }}
         """
         prop_data = extract_json(await call_llm(leader_prompt, model_id))
-        proposed_team = [m for m in prop_data.get("team", []) if m in alive_agents]
+        proposed_team = [m for m in prop_data.get(
+            "team", []) if m in alive_agents]
         leader_say = prop_data.get("say", f"Team {proposed_team}?")
 
         await manager.broadcast({"type": "SPEECH", "id": leader_id, "text": leader_say, "model": model_name})
@@ -144,7 +147,8 @@ async def run_simulation(model_name: str, model_id: str, manager):
             for fisher in fishing_team:
                 catch = 0
                 if state["wild_fish"] > 0:
-                    catch = min(state["agents"][fisher]["skill"], state["wild_fish"])
+                    catch = min(state["agents"][fisher]
+                                ["skill"], state["wild_fish"])
 
                 state["wild_fish"] -= catch
                 state["village_stash"] += catch
@@ -209,7 +213,8 @@ async def run_simulation(model_name: str, model_id: str, manager):
                 await manager.broadcast({"type": "LOG", "text": f"[SYSTEM] Invalid distribution from leader. Auto-distributing 1 fish per agent.", "model": model_name})
             else:
                 # Not enough food - give to as many as possible
-                dist_plan = {a: (1 if i < state["village_stash"] else 0) for i, a in enumerate(alive_agents)}
+                dist_plan = {a: (1 if i < state["village_stash"] else 0)
+                             for i, a in enumerate(alive_agents)}
                 await manager.broadcast({"type": "LOG", "text": f"[SYSTEM] Invalid distribution from leader. Auto-distributing to {state['village_stash']} agents.", "model": model_name})
 
         # Ensure all alive agents are in the distribution plan
@@ -284,7 +289,8 @@ async def run_simulation(model_name: str, model_id: str, manager):
         await manager.broadcast({"type": "UPDATE_STATS", "day": state["day"], "wild": state['wild_fish'], "stash": state['village_stash'], "model": model_name})
 
         # Refresh alive_agents after eating/starvation
-        alive_agents = [aid for aid, data in state["agents"].items() if data["alive"]]
+        alive_agents = [aid for aid,
+                        data in state["agents"].items() if data["alive"]]
         if not alive_agents:
             await manager.broadcast({"type": "PHASE", "text": "GAME OVER: EXTINCTION", "model": model_name})
             break
@@ -297,8 +303,10 @@ async def run_simulation(model_name: str, model_id: str, manager):
 
         # Pick a candidate name not already in use
         used_names = set(state["agents"].keys())
-        available_names = [n for n in GAME_CONFIG["AGENT_NAMES"] if n not in used_names]
-        candidate_name = random.choice(available_names) if available_names else None
+        available_names = [
+            n for n in GAME_CONFIG["AGENT_NAMES"] if n not in used_names]
+        candidate_name = random.choice(
+            available_names) if available_names else None
 
         if candidate_name:
             candidate_skill = random.randint(*GAME_CONFIG["AGENT_SKILL_RANGE"])
@@ -328,7 +336,8 @@ async def run_simulation(model_name: str, model_id: str, manager):
             """
             repro_leader_data = extract_json(await call_llm(repro_leader_prompt, model_id))
             leader_repro_vote = repro_leader_data.get("vote", "NO").upper()
-            leader_repro_say = repro_leader_data.get("say", f"I say {leader_repro_vote} on {candidate_name}.")
+            leader_repro_say = repro_leader_data.get(
+                "say", f"I say {leader_repro_vote} on {candidate_name}.")
             repro_justification = repro_leader_data.get("justification", "")
 
             await manager.broadcast({"type": "SPEECH", "id": leader_id, "text": leader_repro_say, "model": model_name})
@@ -363,7 +372,8 @@ async def run_simulation(model_name: str, model_id: str, manager):
 
             repro_vote_results = await gather_votes(non_leader_voters, make_repro_prompt, model_id)
 
-            repro_yes, repro_no = (1, 0) if leader_repro_vote == "YES" else (0, 1)
+            repro_yes, repro_no = (
+                1, 0) if leader_repro_vote == "YES" else (0, 1)
             for voter, (vote, reason, say) in repro_vote_results.items():
                 await manager.broadcast({"type": "SPEECH", "id": voter, "text": say, "model": model_name})
                 if vote == "YES":
@@ -372,7 +382,8 @@ async def run_simulation(model_name: str, model_id: str, manager):
                     repro_no += 1
 
             if repro_yes > repro_no:
-                state["agents"][candidate_name] = {"id": candidate_name, "skill": candidate_skill, "alive": True}
+                state["agents"][candidate_name] = {
+                    "id": candidate_name, "skill": candidate_skill, "alive": True}
                 await manager.broadcast({"type": "LOG", "text": f"Reproduction Approved: {candidate_name} (skill {candidate_skill}) joins!", "model": model_name})
                 await manager.broadcast({"type": "BORN", "id": candidate_name, "skill": candidate_skill, "model": model_name})
                 # New arrival introduces themselves naturally

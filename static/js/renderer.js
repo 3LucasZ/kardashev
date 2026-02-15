@@ -141,7 +141,7 @@ function gameLoop() {
 
       // Fish must stay in pond: outside island (>65) but inside outer ring (<95)
       const minRadius = 65; // Just outside island
-      const maxRadius = 95; // Inner edge of map
+      const maxRadius = 75; // Inner edge of map
 
       if (d < minRadius) {
         // Too close to island - push away
@@ -196,10 +196,10 @@ function gameLoop() {
       // Always use pixel art sprites from config.js
       const palette = [
         "transparent", // 0
-        "#000",        // 1 - outline
-        "#fec",        // 2 - skin
-        "#222",        // 3 - eyes
-        p.color,       // 4 - body/clothes (agent color)
+        "#000", // 1 - outline
+        "#fec", // 2 - skin
+        "#222", // 3 - eyes
+        p.color, // 4 - body/clothes (agent color)
       ];
       drawSprite(state, "PLAYER", p.x, p.y, palette);
 
