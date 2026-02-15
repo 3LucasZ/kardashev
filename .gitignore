@@ -4,4 +4,4 @@ __pycache__/*
 *.pyo
 *.pyd
 *.log
-.md
+*.md

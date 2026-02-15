@@ -1,23 +1,41 @@
-/**
- * UI interactions - dialogue, bubbles, and user controls
- */
+// UI interactions and dialogue management
 
-// =============================================
-// DIALOGUE FUNCTIONS
-// =============================================
+function switchModel(modelName) {
+  currentModel = modelName;
 
-function scrollDialogueToBottom() {
-  const w = document.getElementById("log-wrapper");
+  // Update tabs
+  document.querySelectorAll(".model-tab").forEach((tab) => {
+    tab.classList.remove("active");
+  });
+  document
+    .querySelector(`.model-tab.${modelName}`)
+    .classList.add("active");
+
+  // Update island views
+  document.querySelectorAll(".island-view").forEach((view) => {
+    view.classList.remove("active");
+  });
+  document
+    .querySelector(`.island-view[data-model="${modelName}"]`)
+    .classList.add("active");
+
+  // Update dialogue wrappers
+  document.querySelectorAll(".dialogue-wrapper").forEach((wrapper) => {
+    wrapper.classList.remove("active");
+  });
+  document.getElementById(`log-wrapper-${modelName}`).classList.add("active");
+}
+
+function scrollDialogueToBottom(model) {
+  const w = document.getElementById(`log-wrapper-${model}`);
   w.scrollTop = w.scrollHeight;
 }
 
-function addDialogueMessage(id, text, type = "speech") {
-  const w = document.getElementById("log-wrapper");
-  const agent = window.players[id];
-  const color =
-    id === "SYSTEM" || id === "⚠ DISASTER"
-      ? "#ef5350"
-      : window.getAgentColor(id);
+function addDialogueMessage(model, id, text, type = "speech") {
+  const state = modelStates[model];
+  const w = document.getElementById(`log-wrapper-${model}`);
+  const agent = state.players[id];
+  const color = state.AGENT_COLORS[id] || "#aaa";
   const isLeader = agent && agent.isLeader;
   const isDead = agent && !agent.alive;
 
@@ -51,8 +69,6 @@ function addDialogueMessage(id, text, type = "speech") {
       ? " death"
       : type === "born"
       ? " born"
-      : type === "disaster"
-      ? " disaster"
       : "");
   textEl.style.borderLeftColor = color;
   textEl.textContent = text;
@@ -62,99 +78,42 @@ function addDialogueMessage(id, text, type = "speech") {
   row.appendChild(av);
   row.appendChild(bubble);
   w.appendChild(row);
-  scrollDialogueToBottom();
+  scrollDialogueToBottom(model);
 }
 
-function log(msg, type = "normal") {
-  const w = document.getElementById("log-wrapper");
-
+function log(model, msg, type = "normal") {
+  const w = document.getElementById(`log-wrapper-${model}`);
   if (type === "phase") {
     const d = document.createElement("div");
     d.className = "log-phase";
     d.textContent = "— " + msg + " —";
     w.appendChild(d);
-  } else if (type !== "death") {
+  } else {
     const d = document.createElement("div");
     d.className = "log-system";
     d.textContent = msg;
     w.appendChild(d);
   }
-
-  scrollDialogueToBottom();
+  scrollDialogueToBottom(model);
 }
 
-// =============================================
-// BUBBLE FUNCTIONS
-// =============================================
-
-function createBubble(id) {
+function createBubble(model, id) {
+  const view = document.querySelector(`.island-view[data-model="${model}"]`);
   const b = document.createElement("div");
-  b.id = `bubble-${id}`;
+  b.id = `bubble-${model}-${id}`;
   b.className = "bubble";
-  document.getElementById("game-container").appendChild(b);
+  view.appendChild(b);
 }
 
-function showBubble(id, text, special = false) {
-  // Filter out boring messages
+function showBubble(model, id, text, special = false) {
   const filtered = ["Yum.", "Yum!", "yum.", "yum!"];
   if (filtered.includes(text.trim())) return;
-
-  const b = document.getElementById(`bubble-${id}`);
+  const b = document.getElementById(`bubble-${model}-${id}`);
   if (b) {
     b.innerText = text;
     b.style.opacity = 1;
     b.style.borderColor = special ? "#4fc3f7" : "#000";
     setTimeout(() => (b.style.opacity = 0), 3000);
   }
-
-  addDialogueMessage(id, text, special ? "status" : "speech");
+  addDialogueMessage(model, id, text, special ? "status" : "speech");
 }
-
-// =============================================
-// CONTROL FUNCTIONS
-// =============================================
-
-function startSim() {
-  if (window.ws && window.ws.readyState === WebSocket.OPEN) {
-    window.ws.send(JSON.stringify({ command: "start" }));
-    document.getElementById("start-btn").disabled = true;
-    document.getElementById("start-btn").innerText = "RUNNING...";
-    document.getElementById("log-wrapper").innerHTML = "";
-
-    if (window.clearChartData) window.clearChartData();
-    window.colorIndex = 0;
-  }
-}
-
-// =============================================
-// EVENT LISTENERS
-// =============================================
-
-// Disaster input
-document
-  .getElementById("disaster-input")
-  .addEventListener("keypress", function (e) {
-    if (e.key === "Enter") {
-      const val = this.value.trim();
-      if (val && window.ws && window.ws.readyState === WebSocket.OPEN) {
-        window.ws.send(JSON.stringify({ command: "disaster", text: val }));
-        this.value = "";
-        // Immediate feedback
-        addDialogueMessage(
-          "SYSTEM",
-          `⚠️ IMPENDING DISASTER: "${val}"`,
-          "disaster"
-        );
-      }
-    }
-  });
-
-// =============================================
-// EXPORTS
-// =============================================
-
-window.createBubble = createBubble;
-window.showBubble = showBubble;
-window.addDialogueMessage = addDialogueMessage;
-window.log = log;
-window.startSim = startSim;
